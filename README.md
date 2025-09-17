@@ -165,3 +165,86 @@ Implemented comprehensive vector addition using three different approaches, foll
 Reading:
 Read Chapter 2 of the PMPP book.
 Learned about CUDA memory hierarchy, shared memory optimization, and kernel optimization techniques. Gained insights into memory coalescing, bank conflicts, and the importance of proper memory access patterns for optimal GPU performance.
+
+## Day 4
+
+Files: matrix_mul.cu, array_increment.cu
+Summary:
+Implemented two fundamental CUDA operations: matrix multiplication and array increment. These implementations demonstrate advanced CUDA programming concepts including 2D grid configuration, memory management for multi-dimensional data, and performance optimization techniques for compute-intensive operations.
+
+**Matrix Multiplication Implementation (matrix_mul.cu):**
+- High-performance matrix multiplication kernel with 2D thread indexing
+- Support for arbitrary matrix dimensions (M×K × K×N = M×N)
+- Optimized memory access patterns with proper indexing calculations
+- Comprehensive error checking and numerical stability considerations
+- Performance measurement using CUDA events
+- CPU verification with floating-point error tolerance
+- Configurable block sizes for different matrix dimensions
+
+**Array Increment Implementation (array_increment.cu):**
+- Simple yet fundamental CUDA kernel for element-wise array operations
+- Demonstrates basic CUDA programming patterns and memory management
+- Host-device memory transfer operations
+- Array printing utilities for result verification
+- Memory allocation and cleanup patterns
+
+**Key Implementation Details:**
+- **2D Grid Configuration**: Using `dim3` for 2D block and grid dimensions
+- **Memory Indexing**: Proper calculation of 2D array indices in 1D memory layout
+- **Thread Mapping**: Each thread computes one output element in matrix multiplication
+- **Bounds Checking**: Comprehensive boundary conditions for arbitrary matrix sizes
+- **Error Handling**: Robust error checking throughout the execution pipeline
+- **Performance Profiling**: Detailed timing analysis for both kernel execution and verification
+
+**Advanced Features:**
+- **Flexible Matrix Dimensions**: Support for non-square matrices with different sizes
+- **Numerical Stability**: Scaled random values for better floating-point precision
+- **Memory Layout Optimization**: Row-major storage with efficient indexing
+- **Comprehensive Testing**: Multiple test cases with different matrix sizes
+- **Performance Analysis**: Detailed timing and throughput calculations
+
+**Mathematical Foundation:**
+- **Matrix Multiplication**: C[i,j] = Σ(A[i,k] × B[k,j]) for k ∈ [0, K)
+- **Memory Layout**: Row-major indexing: index = row × cols + col
+- **Array Increment**: A[i] = A[i] + 1 for all i ∈ [0, N)
+- **Computational Complexity**: O(M×N×K) for matrix multiplication, O(N) for array increment
+
+**CUDA Programming Concepts:**
+- **2D Thread Indexing**: `row = blockIdx.y * blockDim.y + threadIdx.y`
+- **Grid Configuration**: `dim3 grid(num_blocks_COLS, num_blocks_ROWS, 1)`
+- **Memory Management**: Host and device memory allocation for multi-dimensional data
+- **Kernel Launch**: Proper grid and block sizing for 2D operations
+- **Memory Transfers**: Efficient host-device data movement for large matrices
+
+**Performance Optimizations:**
+- **Memory Coalescing**: Sequential memory access patterns for optimal bandwidth
+- **Thread Utilization**: One thread per output element for maximum parallelism
+- **Block Sizing**: Configurable block dimensions for different hardware architectures
+- **Memory Access Patterns**: Optimized indexing calculations to minimize address computation
+- **Numerical Precision**: Scaled random values to prevent overflow/underflow
+
+**Key Learnings:**
+- **2D CUDA Programming**: Understanding of 2D grid and block configuration
+- **Matrix Operations**: Implementation of fundamental linear algebra operations
+- **Memory Layout**: Importance of memory layout for multi-dimensional data
+- **Thread Mapping**: How to map 2D problems to 1D thread indices
+- **Performance Analysis**: Measuring and optimizing CUDA kernel performance
+- **Error Handling**: Comprehensive error checking for production code
+- **Numerical Stability**: Considerations for floating-point arithmetic
+
+**Benchmarking Results:**
+- Tested with various matrix sizes: 100×100, 1000×500×1000
+- Performance measurement for both kernel execution and verification
+- Memory bandwidth utilization analysis
+- Comparison of different block size configurations
+
+**Code Quality Features:**
+- **Comprehensive Documentation**: Detailed comments explaining each operation
+- **Error Checking**: Robust error handling with meaningful error messages
+- **Memory Management**: Proper allocation and cleanup to prevent memory leaks
+- **Modular Design**: Separate functions for testing and verification
+- **Configurable Parameters**: Easy adjustment of matrix sizes and block dimensions
+
+Reading:
+Read Chapter 3 of the PMPP book.
+Learned about advanced CUDA programming techniques, including 2D grid configuration, memory coalescing for multi-dimensional data, and optimization strategies for compute-intensive operations. Gained insights into matrix operations, thread mapping strategies, and performance analysis techniques for GPU programming.
