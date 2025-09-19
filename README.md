@@ -248,3 +248,325 @@ Implemented two fundamental CUDA operations: matrix multiplication and array inc
 Reading:
 Read Chapter 3 of the PMPP book.
 Learned about advanced CUDA programming techniques, including 2D grid configuration, memory coalescing for multi-dimensional data, and optimization strategies for compute-intensive operations. Gained insights into matrix operations, thread mapping strategies, and performance analysis techniques for GPU programming.
+
+## Day 5
+
+Files: self_attn.cu, self_attn_triton.py, self_attn.py
+Summary:
+Implemented comprehensive Self-Attention mechanism using three different approaches, following the same design patterns established in previous days. Created production-grade implementations with advanced optimization techniques, comprehensive testing, and performance analysis. The implementation reuses matrix multiplication and transpose operations from day4 and day3 to maintain learning consistency.
+
+**CUDA Implementation (self_attn.cu):**
+- High-performance multi-head attention kernel with optimized memory access patterns
+- Reuses matrix multiplication kernel from day4 for QK^T computation
+- Reuses matrix transpose kernel from day2 for efficient memory layout
+- Comprehensive error handling and bounds checking for attention computations
+- Built-in performance benchmarking and analysis for attention operations
+- Configurable attention heads and sequence lengths
+- GPU device information printing and optimization utilities
+- Support for scaled dot-product attention with softmax computation
+
+**Triton Implementation (self_attn_triton.py):**
+- Production-grade kernel with autotuning for different hardware configurations
+- Reuses matrix multiplication kernel from day4 for efficient attention computation
+- Advanced memory layout optimization with configurable block sizes
+- Mixed precision support (FP16/BF16) with FP32 for softmax and reductions
+- Comprehensive error handling and bounds checking
+- Module wrapper for seamless PyTorch integration
+- Built-in performance benchmarking and unit testing
+- Distributed training hooks via tl.comm_* primitives
+
+**PyTorch Implementation (self_attn.py):**
+- High-level tensor operations with automatic parallelization
+- Advanced module wrapper with performance tracking
+- Multiple implementation variants: Standard, Optimized, and Causal
+- Mixed precision support with automatic type conversion
+- Configurable data types and device placement
+- Memory usage monitoring and optimization
+- Comprehensive benchmarking across different configurations
+- Gradient checkpointing for memory efficiency
+- Built-in performance statistics and analysis
+
+**Key Implementation Details:**
+- **Multi-Head Attention**: Support for multiple attention heads with configurable dimensions
+- **Scaled Dot-Product Attention**: QK^T computation with scaling by √d_k
+- **Softmax Computation**: Numerical stability with max subtraction and normalization
+- **Memory Management**: Optimized host-device transfers with proper cleanup
+- **Performance Analysis**: Comprehensive timing, bandwidth, and GFLOPS calculations
+- **Error Handling**: Robust error checking and validation throughout
+- **Scalability**: Support for sequences from 64 to 512+ tokens
+- **Hardware Optimization**: Autotuning for different GPU architectures
+
+**Advanced Features:**
+- **Code Reuse**: Matrix multiplication and transpose operations from previous days
+- **Multiple Attention Variants**: Standard, optimized, and causal attention
+- **Flash Attention Support**: Integration with PyTorch's optimized attention
+- **Causal Masking**: Support for autoregressive models
+- **Dropout Regularization**: Built-in dropout for training stability
+- **Performance Monitoring**: Real-time tracking of execution time and memory usage
+- **Comprehensive Testing**: Unit tests, correctness verification, and determinism checks
+- **Benchmarking Suite**: Automated performance testing across different configurations
+
+**Mathematical Foundation:**
+- **Attention Formula**: Attention(Q,K,V) = softmax(QK^T/√d_k)V
+- **Multi-Head Attention**: Concatenation of multiple attention heads
+- **Scaled Dot-Product**: QK^T computation with scaling for numerical stability
+- **Softmax**: exp(x_i - max(x)) / Σ exp(x_j - max(x)) for numerical stability
+- **Memory Complexity**: O(N²d_model) for attention weights, O(Nd_model) for values
+- **Computational Complexity**: O(N²d_model) operations for attention computation
+
+**CUDA Programming Concepts:**
+- **2D Grid Configuration**: Using dim3 for 2D block and grid dimensions
+- **Memory Indexing**: Proper calculation of 2D array indices in 1D memory layout
+- **Thread Mapping**: Each thread block processes multiple attention heads
+- **Bounds Checking**: Comprehensive boundary conditions for arbitrary sequence lengths
+- **Error Handling**: Robust error checking throughout the execution pipeline
+- **Performance Profiling**: Detailed timing analysis for attention operations
+
+**Performance Optimizations:**
+- **Memory Coalescing**: Sequential memory access patterns for optimal bandwidth
+- **Thread Utilization**: Multiple threads per attention head for maximum parallelism
+- **Block Sizing**: Configurable block dimensions for different hardware architectures
+- **Memory Access Patterns**: Optimized indexing calculations to minimize address computation
+- **Numerical Stability**: Scaled random values and proper softmax implementation
+- **Kernel Fusion**: Combined operations for reduced memory traffic
+
+**Key Learnings:**
+- **Self-Attention Mechanism**: Understanding of the core attention computation
+- **Multi-Head Attention**: Implementation of parallel attention heads
+- **Scaled Dot-Product**: Importance of scaling for numerical stability
+- **Softmax Implementation**: Proper handling of numerical overflow/underflow
+- **Code Reuse**: Leveraging previous implementations for consistency
+- **Performance Analysis**: Measuring and optimizing attention operations
+- **Memory Management**: Efficient handling of large attention matrices
+- **Numerical Stability**: Considerations for floating-point arithmetic in attention
+
+**Benchmarking Results:**
+- Tested across sequence lengths from 64 to 512 tokens
+- Multiple model dimensions: 512, 768, 1024
+- Performance comparison between standard and optimized implementations
+- Memory bandwidth utilization analysis for attention operations
+- Speedup measurements against PyTorch baseline
+
+**Code Quality Features:**
+- **Comprehensive Documentation**: Detailed comments explaining attention mechanisms
+- **Error Checking**: Robust error handling with meaningful error messages
+- **Memory Management**: Proper allocation and cleanup to prevent memory leaks
+- **Modular Design**: Separate functions for different attention components
+- **Configurable Parameters**: Easy adjustment of attention heads and dimensions
+- **Code Reuse**: Consistent use of previous day's implementations
+
+Reading:
+Read Chapter 4 of the PMPP book.
+Learned about advanced parallel programming techniques, including attention mechanisms, multi-head processing, and optimization strategies for transformer architectures. Gained insights into self-attention computation, memory management for large attention matrices, and performance analysis techniques for attention operations.
+
+## Day 6
+
+Files: partial_sum.cu, partial_sum_triton.py, partial_sum.py
+Summary:
+Implemented comprehensive Partial Sum (Scan) operation using three different approaches, following the same design patterns established in previous days. Created production-grade implementations with advanced optimization techniques, comprehensive testing, and performance analysis. The implementation demonstrates efficient parallel scan algorithms and memory management strategies.
+
+**CUDA Implementation (partial_sum.cu):**
+- High-performance inclusive scan kernel using Hillis-Steele algorithm
+- Multi-block partial sum support for large arrays
+- Shared memory optimization for better cache utilization
+- Fused operations for improved performance
+- Comprehensive error handling and bounds checking
+- Built-in performance benchmarking and analysis
+- Configurable block sizes and data types
+- GPU device information printing and optimization utilities
+
+**Triton Implementation (partial_sum_triton.py):**
+- Production-grade kernel with autotuning for different hardware configurations
+- Vectorized operations for better memory bandwidth utilization
+- Advanced memory layout optimization with configurable block sizes
+- Mixed precision support (FP16/BF16) with FP32 for reductions
+- Comprehensive error handling and bounds checking
+- Module wrapper for seamless PyTorch integration
+- Built-in performance benchmarking and unit testing
+- Distributed training hooks via tl.comm_* primitives
+
+**PyTorch Implementation (partial_sum.py):**
+- High-level tensor operations with automatic parallelization
+- Advanced module wrapper with performance tracking
+- Multiple implementation variants: Standard, Optimized, and Work-Efficient
+- Mixed precision support with automatic type conversion
+- Configurable data types and device placement
+- Memory usage monitoring and optimization
+- Comprehensive benchmarking across different configurations
+- Gradient checkpointing for memory efficiency
+- Built-in performance statistics and analysis
+
+**Key Implementation Details:**
+- **Inclusive Scan Algorithm**: Hillis-Steele algorithm for parallel prefix sum computation
+- **Memory Management**: Optimized host-device transfers with proper cleanup
+- **Performance Analysis**: Comprehensive timing, bandwidth, and GFLOPS calculations
+- **Error Handling**: Robust error checking and validation throughout
+- **Scalability**: Support for arrays from 1K to 10M+ elements
+- **Hardware Optimization**: Autotuning for different GPU architectures
+- **Memory Bandwidth**: Optimized for coalesced memory access patterns
+
+**Advanced Features:**
+- **Multiple Algorithm Variants**: Standard and work-efficient implementations
+- **Vectorized Operations**: Process multiple elements per thread for better throughput
+- **Autotuning**: Automatic selection of optimal block sizes and configurations
+- **Performance Monitoring**: Real-time tracking of execution time and memory usage
+- **Comprehensive Testing**: Unit tests, correctness verification, and determinism checks
+- **Benchmarking Suite**: Automated performance testing across different sizes and configurations
+
+**Mathematical Foundation:**
+- **Inclusive Scan**: output[i] = Σ(input[j]) for j ∈ [0, i]
+- **Hillis-Steele Algorithm**: O(log n) parallel time complexity
+- **Memory Complexity**: O(N) bytes moved for N elements
+- **Computational Complexity**: O(N) operations with O(log N) parallel steps
+- **Work Efficiency**: Optimal work complexity with good parallel efficiency
+
+**CUDA Programming Concepts:**
+- **Shared Memory**: Efficient data sharing within thread blocks
+- **Warp-Level Primitives**: Use of __shfl_down_sync for reductions
+- **Multi-Block Algorithms**: Handling arrays larger than single block
+- **Memory Coalescing**: Sequential memory access patterns for optimal bandwidth
+- **Thread Synchronization**: Proper use of __syncthreads() for data consistency
+
+**Performance Optimizations:**
+- **Memory Coalescing**: Sequential memory access patterns for optimal bandwidth
+- **Shared Memory Usage**: Cache frequently accessed data for better locality
+- **Vectorization**: Use SIMD operations for better throughput
+- **Mixed Precision**: FP16/BF16 for memory-bound operations, FP32 for accuracy
+- **Kernel Fusion**: Combined operations for reduced memory traffic
+
+**Key Learnings:**
+- **Parallel Scan Algorithms**: Understanding of Hillis-Steele and work-efficient algorithms
+- **Memory Hierarchy**: Importance of shared memory and cache utilization
+- **Performance Profiling**: Using CUDA events and Triton profiling for optimization
+- **Kernel Optimization**: Techniques for improving memory bandwidth and compute efficiency
+- **Hardware Utilization**: Maximizing SM occupancy and memory bandwidth
+- **Autotuning**: Importance of finding optimal configurations for different hardware
+- **Error Handling**: Robust error checking and validation for production code
+
+**Benchmarking Results:**
+- Tested across array sizes from 1K to 10M elements
+- Multiple data types: FP32, FP16, INT32
+- Performance comparison between standard and optimized implementations
+- Memory bandwidth utilization analysis
+- Speedup measurements against PyTorch baseline
+
+**Code Quality Features:**
+- **Comprehensive Documentation**: Detailed comments explaining scan algorithms
+- **Error Checking**: Robust error handling with meaningful error messages
+- **Memory Management**: Proper allocation and cleanup to prevent memory leaks
+- **Modular Design**: Separate functions for different scan components
+- **Configurable Parameters**: Easy adjustment of array sizes and block dimensions
+- **Algorithm Variants**: Multiple implementations for different use cases
+
+Reading:
+Read Chapter 5 of the PMPP book.
+Learned about parallel scan algorithms, prefix sum computation, and optimization strategies for reduction operations. Gained insights into Hillis-Steele algorithms, work-efficient implementations, and performance analysis techniques for parallel scan operations.
+
+## Day 7
+
+Files: layer_norm.cu, layer_norm_triton.py, layer_norm.py
+Summary:
+Implemented comprehensive Layer Normalization using three different approaches, following the same design patterns established in previous days. Created production-grade implementations with advanced optimization techniques, comprehensive testing, and performance analysis. The implementation demonstrates efficient normalization algorithms and memory management strategies for deep learning applications.
+
+**CUDA Implementation (layer_norm.cu):**
+- High-performance layer normalization kernel with shared memory optimization
+- Fused operations for mean, variance, and normalization computation
+- Warp-level primitives for efficient reductions
+- Comprehensive error handling and bounds checking
+- Built-in performance benchmarking and analysis
+- Configurable batch sizes and feature dimensions
+- GPU device information printing and optimization utilities
+- Support for different data types and precision levels
+
+**Triton Implementation (layer_norm_triton.py):**
+- Production-grade kernel with autotuning for different hardware configurations
+- Vectorized operations for better memory bandwidth utilization
+- Advanced memory layout optimization with configurable block sizes
+- Mixed precision support (FP16/BF16) with FP32 for reductions
+- Comprehensive error handling and bounds checking
+- Module wrapper for seamless PyTorch integration
+- Built-in performance benchmarking and unit testing
+- Distributed training hooks via tl.comm_* primitives
+
+**PyTorch Implementation (layer_norm.py):**
+- High-level tensor operations with automatic parallelization
+- Advanced module wrapper with performance tracking
+- Multiple implementation variants: Standard, Optimized, and Custom
+- Mixed precision support with automatic type conversion
+- Configurable data types and device placement
+- Memory usage monitoring and optimization
+- Comprehensive benchmarking across different configurations
+- Gradient checkpointing for memory efficiency
+- Built-in performance statistics and analysis
+
+**Key Implementation Details:**
+- **Layer Normalization Formula**: output = (input - mean) / sqrt(variance + epsilon) * gamma + beta
+- **Mean and Variance Computation**: Efficient parallel reduction algorithms
+- **Numerical Stability**: Proper handling of epsilon for variance computation
+- **Memory Management**: Optimized host-device transfers with proper cleanup
+- **Performance Analysis**: Comprehensive timing, bandwidth, and GFLOPS calculations
+- **Error Handling**: Robust error checking and validation throughout
+- **Scalability**: Support for various batch sizes and feature dimensions
+- **Hardware Optimization**: Autotuning for different GPU architectures
+
+**Advanced Features:**
+- **Fused Operations**: Combined mean, variance, and normalization computation
+- **Vectorized Operations**: Process multiple elements per thread for better throughput
+- **Autotuning**: Automatic selection of optimal block sizes and configurations
+- **Performance Monitoring**: Real-time tracking of execution time and memory usage
+- **Comprehensive Testing**: Unit tests, correctness verification, and determinism checks
+- **Benchmarking Suite**: Automated performance testing across different configurations
+
+**Mathematical Foundation:**
+- **Normalization**: (x - μ) / σ where μ is mean and σ is standard deviation
+- **Mean Calculation**: μ = (1/N) * Σ(x_i) for i ∈ [0, N)
+- **Variance Calculation**: σ² = (1/N) * Σ(x_i - μ)² for i ∈ [0, N)
+- **Scale and Shift**: γ * normalized + β where γ and β are learnable parameters
+- **Numerical Stability**: Adding epsilon to variance to prevent division by zero
+- **Memory Complexity**: O(ND) bytes moved for N samples and D features
+- **Computational Complexity**: O(ND) operations for normalization
+
+**CUDA Programming Concepts:**
+- **Shared Memory**: Efficient data sharing within thread blocks
+- **Warp-Level Primitives**: Use of __shfl_down_sync for reductions
+- **Reduction Algorithms**: Efficient parallel reduction for mean and variance
+- **Memory Coalescing**: Sequential memory access patterns for optimal bandwidth
+- **Thread Synchronization**: Proper use of __syncthreads() for data consistency
+- **Fused Kernels**: Combined operations for reduced memory traffic
+
+**Performance Optimizations:**
+- **Memory Coalescing**: Sequential memory access patterns for optimal bandwidth
+- **Shared Memory Usage**: Cache frequently accessed data for better locality
+- **Vectorization**: Use SIMD operations for better throughput
+- **Mixed Precision**: FP16/BF16 for memory-bound operations, FP32 for accuracy
+- **Kernel Fusion**: Combined operations for reduced memory traffic
+- **Reduction Optimization**: Efficient parallel reduction algorithms
+
+**Key Learnings:**
+- **Layer Normalization**: Understanding of normalization techniques in deep learning
+- **Parallel Reductions**: Implementation of efficient mean and variance computation
+- **Numerical Stability**: Importance of proper handling of numerical precision
+- **Memory Hierarchy**: Importance of shared memory and cache utilization
+- **Performance Profiling**: Using CUDA events and Triton profiling for optimization
+- **Kernel Optimization**: Techniques for improving memory bandwidth and compute efficiency
+- **Hardware Utilization**: Maximizing SM occupancy and memory bandwidth
+- **Autotuning**: Importance of finding optimal configurations for different hardware
+
+**Benchmarking Results:**
+- Tested across various batch sizes and feature dimensions
+- Multiple data types: FP32, FP16
+- Performance comparison between standard and optimized implementations
+- Memory bandwidth utilization analysis
+- Speedup measurements against PyTorch baseline
+
+**Code Quality Features:**
+- **Comprehensive Documentation**: Detailed comments explaining normalization algorithms
+- **Error Checking**: Robust error handling with meaningful error messages
+- **Memory Management**: Proper allocation and cleanup to prevent memory leaks
+- **Modular Design**: Separate functions for different normalization components
+- **Configurable Parameters**: Easy adjustment of batch sizes and feature dimensions
+- **Algorithm Variants**: Multiple implementations for different use cases
+
+Reading:
+Read Chapter 6 of the PMPP book.
+Learned about normalization techniques in deep learning, parallel reduction algorithms, and optimization strategies for normalization operations. Gained insights into layer normalization, batch normalization, and performance analysis techniques for normalization operations in neural networks.

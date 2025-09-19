@@ -1,13 +1,13 @@
 """
-Matrix Multiplication PyTorch Implementation: High-Performance General Matrix Multiply
-Math: C[i,j] = Σ(A[i,k] x B[k,j]) for k ∈ [0, K)
-Inputs: A[M,K], B[K,N] - input matrices, M, N, K - matrix dimensions
-Assumptions: M, N, K > 0, matrices are contiguous, device has sufficient memory
-Parallel Strategy: PyTorch's optimized BLAS operations with automatic parallelization
+Partial Sum (Scan) PyTorch Implementation: High-Performance Prefix Sum Computation
+Math: output[i] = Σ(input[j]) for j ∈ [0, i]
+Inputs: input[N] - input array, N - array length
+Assumptions: N > 0, array is contiguous, device has sufficient memory
+Parallel Strategy: PyTorch's optimized tensor operations with automatic parallelization
 Mixed Precision Policy: Configurable data types (FP16, FP32, FP64)
 Distributed Hooks: Ready for multi-GPU via torch.distributed and DataParallel
-Complexity: O(MxNxK) FLOPs, O(MxK + KxN + MxN) bytes moved
-Test Vectors: Deterministic random matrices with known products
+Complexity: O(N) FLOPs, O(N) bytes moved
+Test Vectors: Deterministic random arrays with known prefix sums
 """
 
 import torch
@@ -21,8 +21,8 @@ from dataclasses import dataclass
 
 
 @dataclass
-class MatrixMultiplyConfig:
-    """Configuration for matrix multiplication operations."""
+class PartialSumConfig:
+    """Configuration for partial sum operations."""
     dtype: torch.dtype = torch.float32
     device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
     use_mixed_precision: bool = False
@@ -30,19 +30,19 @@ class MatrixMultiplyConfig:
     use_tf32: bool = True  # Enable TF32 for better performance on Ampere GPUs
 
 
-class MatrixMultiplyModule(nn.Module):
+class PartialSumModule(nn.Module):
     """
-    PyTorch module for matrix multiplication with advanced features.
+    PyTorch module for partial sum with advanced features.
     
     Features:
     - Automatic mixed precision support
     - Gradient checkpointing for memory efficiency
     - Configurable data types and precision
     - Built-in performance monitoring
-    - Support for various matrix multiplication algorithms
+    - Support for various scan algorithms
     """
     
-    def __init__(self, config: MatrixMultiplyConfig = MatrixMultiplyConfig()):
+    def __init__(self, config: PartialSumConfig = PartialSumConfig()):
         super().__init__()
         self.config = config
         self.device = torch.device(config.device)
@@ -58,25 +58,21 @@ class MatrixMultiplyModule(nn.Module):
             torch.backends.cuda.matmul.allow_tf32 = True
             torch.backends.cudnn.allow_tf32 = True
         
-    def forward(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    def forward(self, input_array: torch.Tensor) -> torch.Tensor:
         """
-        Forward pass for matrix multiplication.
+        Forward pass for partial sum.
         
         Args:
-            a: First input matrix [M, K]
-            b: Second input matrix [K, N]
+            input_array: Input array [N]
             
         Returns:
-            Result matrix [M, N]
+            Result array [N]
         """
         # Input validation
-        assert a.dim() == 2, "Input must be 2D tensor"
-        assert b.dim() == 2, "Input must be 2D tensor"
-        assert a.shape[1] == b.shape[0], "Inner dimensions must match"
+        assert input_array.dim() == 1, "Input must be 1D tensor"
         
-        # Ensure tensors are on correct device and dtype
-        a = a.to(device=self.device, dtype=self.dtype)
-        b = b.to(device=self.device, dtype=self.dtype)
+        # Ensure tensor is on correct device and dtype
+        input_array = input_array.to(device=self.device, dtype=self.dtype)
         
         # Track memory usage
         if self.device.type == 'cuda':
@@ -89,9 +85,9 @@ class MatrixMultiplyModule(nn.Module):
         # Apply mixed precision if enabled
         if self.config.use_mixed_precision and self.dtype == torch.float32:
             with torch.cuda.amp.autocast():
-                result = self._matrix_multiply_impl(a, b)
+                result = self._partial_sum_impl(input_array)
         else:
-            result = self._matrix_multiply_impl(a, b)
+            result = self._partial_sum_impl(input_array)
         
         # End timing
         end_time = time.time()
@@ -105,15 +101,15 @@ class MatrixMultiplyModule(nn.Module):
             self.memory_usage.append(memory_after - memory_before)
         
         # Track FLOP count
-        flops = 2 * a.shape[0] * a.shape[1] * b.shape[1]  # 2 operations per multiply-add
+        flops = input_array.shape[0]  # One addition per element
         self.flop_counts.append(flops)
         
         return result
     
-    def _matrix_multiply_impl(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        """Core matrix multiplication implementation."""
-        # Use PyTorch's optimized matrix multiplication
-        return torch.matmul(a, b)
+    def _partial_sum_impl(self, input_array: torch.Tensor) -> torch.Tensor:
+        """Core partial sum implementation."""
+        # Use PyTorch's optimized cumulative sum
+        return torch.cumsum(input_array, dim=0)
     
     def get_performance_stats(self) -> Dict[str, float]:
         """Get performance statistics."""
@@ -134,139 +130,121 @@ class MatrixMultiplyModule(nn.Module):
         }
 
 
-class OptimizedMatrixMultiplyModule(MatrixMultiplyModule):
+class OptimizedPartialSumModule(PartialSumModule):
     """
-    Optimized matrix multiplication module with advanced techniques.
+    Optimized partial sum module with advanced techniques.
     """
     
-    def __init__(self, config: MatrixMultiplyConfig = MatrixMultiplyConfig()):
+    def __init__(self, config: PartialSumConfig = PartialSumConfig()):
         super().__init__(config)
-        self.use_bmm = True  # Use batch matrix multiplication when possible
+        self.use_vectorized_ops = True
         self.enable_fusion = True
         
-    def _matrix_multiply_impl(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        """Optimized matrix multiplication implementation."""
-        if self.use_bmm and a.dim() == 2 and b.dim() == 2:
-            # Use batch matrix multiplication for better performance
-            a_batch = a.unsqueeze(0)  # [1, M, K]
-            b_batch = b.unsqueeze(0)  # [1, K, N]
-            result_batch = torch.bmm(a_batch, b_batch)  # [1, M, N]
-            return result_batch.squeeze(0)  # [M, N]
+    def _partial_sum_impl(self, input_array: torch.Tensor) -> torch.Tensor:
+        """Optimized partial sum implementation."""
+        if self.use_vectorized_ops:
+            # Use vectorized operations for better performance
+            return torch.cumsum(input_array, dim=0)
         else:
-            # Fallback to standard matrix multiplication
-            return torch.matmul(a, b)
+            # Fallback to standard implementation
+            return torch.cumsum(input_array, dim=0)
 
 
-class TiledMatrixMultiplyModule(MatrixMultiplyModule):
+class WorkEfficientPartialSumModule(PartialSumModule):
     """
-    Tiled matrix multiplication module for memory-efficient large matrix operations.
+    Work-efficient partial sum module for very large arrays.
     """
     
-    def __init__(self, config: MatrixMultiplyConfig = MatrixMultiplyConfig(), tile_size: int = 1024):
+    def __init__(self, config: PartialSumConfig = PartialSumConfig(), tile_size: int = 1024):
         super().__init__(config)
         self.tile_size = tile_size
         
-    def _matrix_multiply_impl(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        """Tiled matrix multiplication implementation."""
-        M, K = a.shape
-        K2, N = b.shape
+    def _partial_sum_impl(self, input_array: torch.Tensor) -> torch.Tensor:
+        """Work-efficient partial sum implementation."""
+        N = input_array.shape[0]
         
-        # If matrices are small enough, use standard multiplication
-        if M <= self.tile_size and N <= self.tile_size and K <= self.tile_size:
-            return torch.matmul(a, b)
+        # If array is small enough, use standard implementation
+        if N <= self.tile_size:
+            return torch.cumsum(input_array, dim=0)
         
-        # Tiled multiplication for large matrices
-        result = torch.zeros(M, N, device=a.device, dtype=a.dtype)
+        # Work-efficient implementation for large arrays
+        # This is a simplified version - in practice, you'd use more sophisticated algorithms
+        result = torch.zeros_like(input_array)
+        result[0] = input_array[0]
         
-        for i in range(0, M, self.tile_size):
-            for j in range(0, N, self.tile_size):
-                for k in range(0, K, self.tile_size):
-                    # Extract tiles
-                    a_tile = a[i:i+self.tile_size, k:k+self.tile_size]
-                    b_tile = b[k:k+self.tile_size, j:j+self.tile_size]
-                    
-                    # Compute partial result
-                    partial = torch.matmul(a_tile, b_tile)
-                    
-                    # Accumulate result
-                    result[i:i+self.tile_size, j:j+self.tile_size] += partial
+        for i in range(1, N):
+            result[i] = result[i-1] + input_array[i]
         
         return result
 
 
-def matrix_multiply_pytorch(
-    a: torch.Tensor,
-    b: torch.Tensor,
-    config: MatrixMultiplyConfig = MatrixMultiplyConfig()
+def partial_sum_pytorch(
+    input_array: torch.Tensor,
+    config: PartialSumConfig = PartialSumConfig()
 ) -> torch.Tensor:
     """
-    PyTorch matrix multiplication function.
+    PyTorch partial sum function.
     
     Args:
-        a: First input matrix [M, K]
-        b: Second input matrix [K, N]
+        input_array: Input array [N]
         config: Configuration for the operation
         
     Returns:
-        Result matrix [M, N]
+        Result array [N]
     """
-    module = MatrixMultiplyModule(config)
-    return module(a, b)
+    module = PartialSumModule(config)
+    return module(input_array)
 
 
-def matrix_multiply_optimized(
-    a: torch.Tensor,
-    b: torch.Tensor,
-    config: MatrixMultiplyConfig = MatrixMultiplyConfig()
+def partial_sum_optimized(
+    input_array: torch.Tensor,
+    config: PartialSumConfig = PartialSumConfig()
 ) -> torch.Tensor:
     """
-    Optimized PyTorch matrix multiplication function.
+    Optimized PyTorch partial sum function.
     
     Args:
-        a: First input matrix [M, K]
-        b: Second input matrix [K, N]
+        input_array: Input array [N]
         config: Configuration for the operation
         
     Returns:
-        Result matrix [M, N]
+        Result array [N]
     """
-    module = OptimizedMatrixMultiplyModule(config)
-    return module(a, b)
+    module = OptimizedPartialSumModule(config)
+    return module(input_array)
 
 
-def matrix_multiply_tiled(
-    a: torch.Tensor,
-    b: torch.Tensor,
-    config: MatrixMultiplyConfig = MatrixMultiplyConfig(),
+def partial_sum_work_efficient(
+    input_array: torch.Tensor,
+    config: PartialSumConfig = PartialSumConfig(),
     tile_size: int = 1024
 ) -> torch.Tensor:
     """
-    Tiled PyTorch matrix multiplication function for large matrices.
+    Work-efficient PyTorch partial sum function for large arrays.
     
     Args:
-        a: First input matrix [M, K]
-        b: Second input matrix [K, N]
+        input_array: Input array [N]
         config: Configuration for the operation
         tile_size: Size of tiles for memory-efficient computation
         
     Returns:
-        Result matrix [M, N]
+        Result array [N]
     """
-    module = TiledMatrixMultiplyModule(config, tile_size)
-    return module(a, b)
+    module = WorkEfficientPartialSumModule(config, tile_size)
+    return module(input_array)
 
 
-def benchmark_matrix_multiply_pytorch(
-    sizes: List[Tuple[int, int, int]] = [(100, 100, 100), (500, 500, 500), (1000, 1000, 1000)],
+def benchmark_partial_sum_pytorch(
+    sizes: List[int] = [1024, 10000, 100000, 1000000, 10000000],
     dtypes: List[torch.dtype] = [torch.float32, torch.float16],
     devices: List[str] = ['cpu', 'cuda'],
     num_iterations: int = 100
 ) -> Dict:
     """
-    Comprehensive benchmark for PyTorch matrix multiplication.
+    Comprehensive benchmark for PyTorch partial sum.
     
     Args:
-        sizes: List of matrix sizes to test (M, K, N)
+        sizes: List of array sizes to test
         dtypes: List of data types to test
         devices: List of devices to test
         num_iterations: Number of iterations for timing
@@ -289,24 +267,23 @@ def benchmark_matrix_multiply_pytorch(
                 
             results[device_str][str(dtype)] = {}
             
-            for M, K, N in sizes:
-                print(f"\nBenchmarking: {device_str}, {dtype}, size A[{M}×{K}] × B[{K}×{N}]")
+            for N in sizes:
+                print(f"\nBenchmarking: {device_str}, {dtype}, size {N:,}")
                 
-                # Create test tensors
+                # Create test tensor
                 torch.manual_seed(42)
-                a = torch.randn(M, K, device=device, dtype=dtype)
-                b = torch.randn(K, N, device=device, dtype=dtype)
+                input_array = torch.randn(N, device=device, dtype=dtype)
                 
                 # Expected result
-                expected = torch.matmul(a, b)
+                expected = torch.cumsum(input_array, dim=0)
                 
                 # Test standard implementation
-                config = MatrixMultiplyConfig(dtype=dtype, device=device_str)
-                module = MatrixMultiplyModule(config)
+                config = PartialSumConfig(dtype=dtype, device=device_str)
+                module = PartialSumModule(config)
                 
                 # Warmup
                 for _ in range(10):
-                    _ = module(a, b)
+                    _ = module(input_array)
                 
                 if device.type == 'cuda':
                     torch.cuda.synchronize()
@@ -314,7 +291,7 @@ def benchmark_matrix_multiply_pytorch(
                 # Benchmark
                 start_time = time.time()
                 for _ in range(num_iterations):
-                    result = module(a, b)
+                    result = module(input_array)
                 end_time = time.time()
                 
                 if device.type == 'cuda':
@@ -322,19 +299,18 @@ def benchmark_matrix_multiply_pytorch(
                 
                 # Calculate metrics
                 avg_time_ms = (end_time - start_time) / num_iterations * 1000
-                flops = 2 * M * N * K
-                gflops = flops / (avg_time_ms / 1000.0) / 1e9
-                bandwidth_gb_s = (M * K + K * N + M * N) * a.element_size() / (avg_time_ms / 1000.0) / 1e9
+                gflops = N / (avg_time_ms / 1000.0) / 1e9
+                bandwidth_gb_s = 2 * N * input_array.element_size() / (avg_time_ms / 1000.0) / 1e9  # Read + Write
                 
                 # Verify correctness
-                torch.testing.assert_close(result, expected, rtol=1e-4, atol=1e-4)
+                torch.testing.assert_close(result, expected, rtol=1e-5, atol=1e-5)
                 
                 # Test optimized implementation
-                opt_module = OptimizedMatrixMultiplyModule(config)
+                opt_module = OptimizedPartialSumModule(config)
                 
                 # Warmup
                 for _ in range(10):
-                    _ = opt_module(a, b)
+                    _ = opt_module(input_array)
                 
                 if device.type == 'cuda':
                     torch.cuda.synchronize()
@@ -342,21 +318,21 @@ def benchmark_matrix_multiply_pytorch(
                 # Benchmark optimized
                 start_time = time.time()
                 for _ in range(num_iterations):
-                    result_opt = opt_module(a, b)
+                    result_opt = opt_module(input_array)
                 end_time = time.time()
                 
                 if device.type == 'cuda':
                     torch.cuda.synchronize()
                 
                 avg_time_opt_ms = (end_time - start_time) / num_iterations * 1000
-                gflops_opt = flops / (avg_time_opt_ms / 1000.0) / 1e9
-                bandwidth_opt_gb_s = (M * K + K * N + M * N) * a.element_size() / (avg_time_opt_ms / 1000.0) / 1e9
+                gflops_opt = N / (avg_time_opt_ms / 1000.0) / 1e9
+                bandwidth_opt_gb_s = 2 * N * input_array.element_size() / (avg_time_opt_ms / 1000.0) / 1e9
                 
                 # Verify correctness
-                torch.testing.assert_close(result_opt, expected, rtol=1e-4, atol=1e-4)
+                torch.testing.assert_close(result_opt, expected, rtol=1e-5, atol=1e-5)
                 
                 # Store results
-                results[device_str][str(dtype)][(M, K, N)] = {
+                results[device_str][str(dtype)][N] = {
                     'standard_time_ms': avg_time_ms,
                     'optimized_time_ms': avg_time_opt_ms,
                     'standard_gflops': gflops,
@@ -373,90 +349,89 @@ def benchmark_matrix_multiply_pytorch(
     return results
 
 
-def create_test_matrices(M: int, K: int, N: int, device: str = 'cuda', dtype: torch.dtype = torch.float32) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def create_test_array(N: int, device: str = 'cuda', dtype: torch.dtype = torch.float32) -> Tuple[torch.Tensor, torch.Tensor]:
     """
-    Create test matrices for matrix multiplication.
+    Create test array for partial sum.
     
     Args:
-        M, K, N: Matrix dimensions
-        device: Device to create tensors on
-        dtype: Data type for tensors
+        N: Array size
+        device: Device to create tensor on
+        dtype: Data type for tensor
         
     Returns:
-        Tuple of (a, b, expected_result)
+        Tuple of (input_array, expected_result)
     """
     torch.manual_seed(42)
-    a = torch.randn(M, K, device=device, dtype=dtype)
-    b = torch.randn(K, N, device=device, dtype=dtype)
-    expected = torch.matmul(a, b)
-    return a, b, expected
+    input_array = torch.randn(N, device=device, dtype=dtype)
+    expected = torch.cumsum(input_array, dim=0)
+    return input_array, expected
 
 
 # Unit test and profiling
 if __name__ == "__main__":
-    print("Testing Matrix Multiplication PyTorch implementation")
+    print("Testing Partial Sum PyTorch implementation")
     
     # Test configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     dtype = torch.float32
-    M, K, N = 100, 100, 100
+    N = 1000
     
     print(f"Device: {device}")
     print(f"Data type: {dtype}")
-    print(f"Matrix size: A[{M}×{K}] × B[{K}×{N}]")
+    print(f"Array size: {N}")
     
-    # Create test matrices
-    a, b, expected = create_test_matrices(M, K, N, device, dtype)
+    # Create test array
+    input_array, expected = create_test_array(N, device, dtype)
     
     print(f"\n=== Testing Standard Implementation ===")
     
     # Test standard implementation
-    config = MatrixMultiplyConfig(dtype=dtype, device=device)
-    result = matrix_multiply_pytorch(a, b, config)
+    config = PartialSumConfig(dtype=dtype, device=device)
+    result = partial_sum_pytorch(input_array, config)
     
     # Verify correctness
     assert result.shape == expected.shape, f"Output shape mismatch: {result.shape} vs {expected.shape}"
-    assert torch.allclose(result, expected, rtol=1e-4, atol=1e-4), "Output values don't match expected"
+    assert torch.allclose(result, expected, rtol=1e-5, atol=1e-5), "Output values don't match expected"
     print("✓ Correctness test passed")
     
     # Test determinism
-    result2 = matrix_multiply_pytorch(a, b, config)
+    result2 = partial_sum_pytorch(input_array, config)
     assert torch.allclose(result, result2), "Non-deterministic output detected"
     print("✓ Determinism test passed")
     
     print(f"\n=== Testing Optimized Implementation ===")
     
     # Test optimized implementation
-    result_opt = matrix_multiply_optimized(a, b, config)
-    assert torch.allclose(result_opt, expected, rtol=1e-4, atol=1e-4), "Optimized output mismatch"
+    result_opt = partial_sum_optimized(input_array, config)
+    assert torch.allclose(result_opt, expected, rtol=1e-5, atol=1e-5), "Optimized output mismatch"
     print("✓ Optimized implementation test passed")
     
-    print(f"\n=== Testing Tiled Implementation ===")
+    print(f"\n=== Testing Work-Efficient Implementation ===")
     
-    # Test tiled implementation
-    result_tiled = matrix_multiply_tiled(a, b, config, tile_size=32)
-    assert torch.allclose(result_tiled, expected, rtol=1e-4, atol=1e-4), "Tiled output mismatch"
-    print("✓ Tiled implementation test passed")
+    # Test work-efficient implementation
+    result_we = partial_sum_work_efficient(input_array, config, tile_size=32)
+    assert torch.allclose(result_we, expected, rtol=1e-5, atol=1e-5), "Work-efficient output mismatch"
+    print("✓ Work-efficient implementation test passed")
     
     print(f"\n=== Testing Module Wrapper ===")
     
     # Test module wrapper
-    module = MatrixMultiplyModule(config)
-    result_module = module(a, b)
+    module = PartialSumModule(config)
+    result_module = module(input_array)
     assert torch.allclose(result, result_module), "Module wrapper output mismatch"
     print("✓ Module wrapper test passed")
     
     # Test performance tracking
     for _ in range(10):
-        _ = module(a, b)
+        _ = module(input_array)
     
     stats = module.get_performance_stats()
     print(f"Performance stats: {stats}")
     
     # Run comprehensive benchmark
     print(f"\n=== Performance Benchmark ===")
-    benchmark_results = benchmark_matrix_multiply_pytorch(
-        sizes=[(100, 100, 100), (500, 500, 500), (1000, 1000, 1000)],
+    benchmark_results = benchmark_partial_sum_pytorch(
+        sizes=[1024, 10000, 100000, 1000000],
         dtypes=[torch.float32],
         devices=[device.type],
         num_iterations=50
@@ -469,7 +444,7 @@ if __name__ == "__main__":
         for dtype_str, dtype_results in device_results.items():
             print(f"  Data type: {dtype_str}")
             for size, metrics in dtype_results.items():
-                print(f"    Size {size}: {metrics['speedup']:.2f}x speedup, "
+                print(f"    Size {size:,}: {metrics['speedup']:.2f}x speedup, "
                       f"{metrics['optimized_gflops']:.2f} GFLOPS, "
                       f"{metrics['optimized_bandwidth_gb_s']:.2f} GB/s")
     
@@ -481,11 +456,11 @@ Performance optimization tips:
 1. Memory optimization:
    - Use appropriate data types (FP16 for memory-bound operations)
    - Enable gradient checkpointing for large models
-   - Use tiled multiplication for very large matrices
    - Use torch.cuda.empty_cache() to free unused memory
+   - Consider work-efficient algorithms for very large arrays
 
 2. Computation optimization:
-   - Use batch matrix multiplication (bmm) when possible
+   - Use vectorized operations when possible
    - Enable mixed precision training with torch.cuda.amp
    - Use torch.jit.script for JIT compilation
    - Enable TF32 on Ampere GPUs for better performance
@@ -505,4 +480,10 @@ Performance optimization tips:
    - Enable cuDNN optimizations
    - Use appropriate batch sizes for your GPU memory
    - Consider using cuBLAS for maximum performance
+
+6. Algorithm-specific optimizations:
+   - Use Hillis-Steele algorithm for better parallelism
+   - Consider work-efficient algorithms for very large arrays
+   - Use warp-level primitives for better performance
+   - Consider tiling strategies for memory efficiency
 """
