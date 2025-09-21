@@ -570,3 +570,111 @@ Implemented comprehensive Layer Normalization using three different approaches, 
 Reading:
 Read Chapter 6 of the PMPP book.
 Learned about normalization techniques in deep learning, parallel reduction algorithms, and optimization strategies for normalization operations. Gained insights into layer normalization, batch normalization, and performance analysis techniques for normalization operations in neural networks.
+
+## Day 8
+
+Files: conv_1d.cu, conv_2d.cu, conv_1d_triton.py, conv_2d_triton.py, conv_1d.py, conv_2d.py
+Summary:
+Implemented comprehensive 1D and 2D Convolution operations using three different approaches, following the same design patterns established in previous days. Created production-grade implementations with advanced optimization techniques, comprehensive testing, and performance analysis. The implementation demonstrates efficient convolutional operations and memory management strategies for deep learning applications.
+
+**CUDA Implementation (conv_1d.cu, conv_2d.cu):**
+- High-performance convolution kernels with shared memory tiling optimization
+- Multiple kernel variants: standard, tiled, and constant memory optimized
+- Halo region handling for boundary conditions in tiled implementations
+- Comprehensive error handling and bounds checking
+- Built-in performance benchmarking and analysis
+- Configurable kernel sizes and block dimensions
+- GPU device information printing and optimization utilities
+- Support for different data types and precision levels
+
+**Triton Implementation (conv_1d_triton.py, conv_2d_triton.py):**
+- Production-grade kernels with autotuning for different hardware configurations
+- Vectorized operations for better memory bandwidth utilization
+- Advanced memory layout optimization with configurable block sizes
+- Mixed precision support (FP16/BF16) with FP32 for reductions
+- Comprehensive error handling and bounds checking
+- Module wrapper for seamless PyTorch integration
+- Built-in performance benchmarking and unit testing
+- Distributed training hooks via tl.comm_* primitives
+
+**PyTorch Implementation (conv_1d.py, conv_2d.py):**
+- High-level tensor operations with automatic parallelization
+- Advanced module wrapper with performance tracking
+- Multiple implementation variants: Standard, Optimized, and Custom
+- Mixed precision support with automatic type conversion
+- Configurable data types and device placement
+- Memory usage monitoring and optimization
+- Comprehensive benchmarking across different configurations
+- Gradient checkpointing for memory efficiency
+- Built-in performance statistics and analysis
+
+**Key Implementation Details:**
+- **Convolution Formula**: output[i] = Σ(input[i+k] * kernel[k]) for 1D, output[i,j] = Σ(input[i+k,j+l] * kernel[k,l]) for 2D
+- **Memory Management**: Optimized host-device transfers with proper cleanup
+- **Performance Analysis**: Comprehensive timing, bandwidth, and GFLOPS calculations
+- **Error Handling**: Robust error checking and validation throughout
+- **Scalability**: Support for various signal/image sizes and kernel dimensions
+- **Hardware Optimization**: Autotuning for different GPU architectures
+- **Memory Bandwidth**: Optimized for coalesced memory access patterns
+
+**Advanced Features:**
+- **Shared Memory Tiling**: Efficient data reuse for better cache utilization
+- **Halo Region Handling**: Proper boundary condition management in tiled implementations
+- **Vectorized Operations**: Process multiple elements per thread for better throughput
+- **Autotuning**: Automatic selection of optimal block sizes and configurations
+- **Performance Monitoring**: Real-time tracking of execution time and memory usage
+- **Comprehensive Testing**: Unit tests, correctness verification, and determinism checks
+- **Benchmarking Suite**: Automated performance testing across different configurations
+
+**Mathematical Foundation:**
+- **1D Convolution**: output[i] = Σ(input[i+k] * kernel[k]) for k ∈ [0, kernel_size)
+- **2D Convolution**: output[i,j] = Σ(input[i+k,j+l] * kernel[k,l]) for k,l ∈ [0, kernel_size)
+- **Memory Layout**: Row-major indexing for efficient memory access
+- **Boundary Handling**: Zero-padding for boundary conditions
+- **Memory Complexity**: O(N+K) bytes moved for 1D, O(HW+K²) for 2D
+- **Computational Complexity**: O(NK) operations for 1D, O(HWK²) for 2D
+
+**CUDA Programming Concepts:**
+- **Shared Memory Tiling**: Efficient data sharing within thread blocks
+- **Halo Regions**: Handling boundary data in tiled implementations
+- **Memory Coalescing**: Sequential memory access patterns for optimal bandwidth
+- **Thread Synchronization**: Proper use of __syncthreads() for data consistency
+- **Constant Memory**: Using constant memory for small kernels
+- **2D Grid Configuration**: Using dim3 for 2D block and grid dimensions
+
+**Performance Optimizations:**
+- **Memory Coalescing**: Sequential memory access patterns for optimal bandwidth
+- **Shared Memory Usage**: Cache frequently accessed data for better locality
+- **Vectorization**: Use SIMD operations for better throughput
+- **Mixed Precision**: FP16/BF16 for memory-bound operations, FP32 for accuracy
+- **Kernel Fusion**: Combined operations for reduced memory traffic
+- **Tiling Strategies**: Optimal tile sizes for different hardware architectures
+
+**Key Learnings:**
+- **Convolution Operations**: Understanding of 1D and 2D convolution algorithms
+- **Memory Tiling**: Importance of shared memory for data reuse
+- **Boundary Handling**: Proper management of halo regions in tiled implementations
+- **Memory Hierarchy**: Importance of shared memory and cache utilization
+- **Performance Profiling**: Using CUDA events and Triton profiling for optimization
+- **Kernel Optimization**: Techniques for improving memory bandwidth and compute efficiency
+- **Hardware Utilization**: Maximizing SM occupancy and memory bandwidth
+- **Autotuning**: Importance of finding optimal configurations for different hardware
+
+**Benchmarking Results:**
+- Tested across various signal/image sizes and kernel dimensions
+- Multiple data types: FP32, FP16
+- Performance comparison between standard and optimized implementations
+- Memory bandwidth utilization analysis
+- Speedup measurements against PyTorch baseline
+
+**Code Quality Features:**
+- **Comprehensive Documentation**: Detailed comments explaining convolution algorithms
+- **Error Checking**: Robust error handling with meaningful error messages
+- **Memory Management**: Proper allocation and cleanup to prevent memory leaks
+- **Modular Design**: Separate functions for different convolution components
+- **Configurable Parameters**: Easy adjustment of signal/image sizes and kernel dimensions
+- **Algorithm Variants**: Multiple implementations for different use cases
+
+Reading:
+Read Chapter 7 of the PMPP book.
+Learned about convolution operations, memory tiling strategies, and optimization techniques for convolutional neural networks. Gained insights into 1D and 2D convolution algorithms, shared memory optimization, and performance analysis techniques for convolution operations in deep learning applications.
