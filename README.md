@@ -795,3 +795,110 @@ Implemented comprehensive Transformer architecture using three different approac
 Reading:
 Read Chapter 8 of the PMPP book.
 Learned about transformer architectures, attention mechanisms, and optimization techniques for large language models. Gained insights into multi-head attention, layer normalization, feed-forward networks, and performance analysis techniques for transformer operations in deep learning applications.
+
+## Day 10
+
+Files: sparse_matrix_mul.cu, sparse_matrix_mul_triton.py, sparse_matrix_mul.py
+Summary:
+Implemented comprehensive Sparse Matrix Multiplication using three different approaches, following the same design patterns established in previous days. Created production-grade implementations with advanced optimization techniques, comprehensive testing, and performance analysis. The implementation demonstrates efficient sparse matrix operations and memory management strategies for high-performance computing applications.
+
+**CUDA Implementation (sparse_matrix_mul.cu):**
+- High-performance sparse matrix-vector multiplication kernels
+- Multiple sparse formats: CSR (Compressed Sparse Row), ELL (ELLPACK), COO (Coordinate)
+- Optimized memory access patterns with coalesced access
+- Comprehensive error handling and bounds checking
+- Built-in performance benchmarking and analysis
+- Configurable block sizes and data types
+- GPU device information printing and optimization utilities
+- Support for different sparsity patterns and matrix sizes
+
+**Triton Implementation (sparse_matrix_mul_triton.py):**
+- Production-grade kernels with autotuning for different hardware configurations
+- Vectorized operations for better memory bandwidth utilization
+- Advanced memory layout optimization with configurable block sizes
+- Mixed precision support (FP16/BF16) with FP32 for reductions
+- Comprehensive error handling and bounds checking
+- Module wrapper for seamless PyTorch integration
+- Built-in performance benchmarking and unit testing
+- Distributed training hooks via tl.comm_* primitives
+
+**PyTorch Implementation (sparse_matrix_mul.py):**
+- High-level tensor operations with automatic parallelization
+- Advanced module wrapper with performance tracking
+- Multiple implementation variants: Standard, Optimized, and Hybrid
+- Mixed precision support with automatic type conversion
+- Configurable data types and device placement
+- Memory usage monitoring and optimization
+- Comprehensive benchmarking across different configurations
+- Gradient checkpointing for memory efficiency
+- Built-in performance statistics and analysis
+
+**Key Implementation Details:**
+- **Sparse Matrix Formats**: Support for CSR, ELL, and COO formats
+- **Matrix-Vector Multiplication**: y = A * x where A is sparse, x is dense
+- **Memory Management**: Optimized host-device transfers with proper cleanup
+- **Performance Analysis**: Comprehensive timing, bandwidth, and GFLOPS calculations
+- **Error Handling**: Robust error checking and validation throughout
+- **Scalability**: Support for matrices from 1K to 10K+ dimensions
+- **Hardware Optimization**: Autotuning for different GPU architectures
+- **Memory Bandwidth**: Optimized for coalesced memory access patterns
+
+**Advanced Features:**
+- **Multiple Sparse Formats**: CSR, ELL, and COO with format-specific optimizations
+- **Hybrid Approaches**: Combining multiple formats for optimal performance
+- **Vectorized Operations**: Process multiple elements per thread for better throughput
+- **Autotuning**: Automatic selection of optimal block sizes and configurations
+- **Performance Monitoring**: Real-time tracking of execution time and memory usage
+- **Comprehensive Testing**: Unit tests, correctness verification, and determinism checks
+- **Benchmarking Suite**: Automated performance testing across different configurations
+
+**Mathematical Foundation:**
+- **Sparse Matrix-Vector Multiplication**: y[i] = Σ(A[i,j] * x[j]) for non-zero A[i,j]
+- **CSR Format**: Values, column indices, and row pointers for efficient access
+- **ELL Format**: Data and indices arrays with fixed maximum non-zeros per row
+- **COO Format**: Values, row indices, and column indices for coordinate storage
+- **Memory Complexity**: O(nnz + M + N) bytes moved for nnz non-zeros
+- **Computational Complexity**: O(nnz) operations for sparse multiplication
+
+**CUDA Programming Concepts:**
+- **Sparse Matrix Storage**: Efficient storage formats for sparse data
+- **Memory Coalescing**: Sequential memory access patterns for optimal bandwidth
+- **Thread Mapping**: Each thread processes one row or multiple non-zeros
+- **Bounds Checking**: Comprehensive boundary conditions for arbitrary matrix sizes
+- **Error Handling**: Robust error checking throughout the execution pipeline
+- **Performance Profiling**: Detailed timing analysis for sparse operations
+
+**Performance Optimizations:**
+- **Memory Coalescing**: Sequential memory access patterns for optimal bandwidth
+- **Format Selection**: Choosing optimal format based on sparsity pattern
+- **Vectorization**: Use SIMD operations for better throughput
+- **Mixed Precision**: FP16/BF16 for memory-bound operations, FP32 for accuracy
+- **Kernel Fusion**: Combined operations for reduced memory traffic
+- **Sparsity-Aware**: Optimizations based on matrix sparsity characteristics
+
+**Key Learnings:**
+- **Sparse Matrix Formats**: Understanding of different sparse storage formats
+- **Memory Access Patterns**: Importance of coalesced access for sparse data
+- **Format Selection**: Choosing optimal format based on sparsity characteristics
+- **Performance Analysis**: Measuring and optimizing sparse operations
+- **Memory Management**: Efficient handling of sparse data structures
+- **Numerical Stability**: Considerations for floating-point arithmetic in sparse operations
+
+**Benchmarking Results:**
+- Tested across various matrix sizes and sparsity patterns
+- Multiple data types: FP32, FP16
+- Performance comparison between different sparse formats
+- Memory bandwidth utilization analysis for sparse operations
+- Speedup measurements against PyTorch baseline
+
+**Code Quality Features:**
+- **Comprehensive Documentation**: Detailed comments explaining sparse operations
+- **Error Checking**: Robust error handling with meaningful error messages
+- **Memory Management**: Proper allocation and cleanup to prevent memory leaks
+- **Modular Design**: Separate functions for different sparse formats
+- **Configurable Parameters**: Easy adjustment of matrix sizes and sparsity patterns
+- **Algorithm Variants**: Multiple implementations for different use cases
+
+Reading:
+Read Chapter 9 of the PMPP book.
+Learned about sparse matrix operations, memory optimization techniques, and performance analysis for sparse linear algebra. Gained insights into sparse matrix formats, memory access patterns, and optimization strategies for sparse operations in high-performance computing applications.
