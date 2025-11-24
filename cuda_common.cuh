@@ -7,7 +7,7 @@
 
 #ifndef CUDA_COMMON_CUH
 #define CUDA_COMMON_CUH
-
+#include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <stdlib.h>
