@@ -1,9 +1,6 @@
 ## GPU 100 days Learning Journey
 ##### This document serves as a log of the progress and knowledge I gained while working on GPU programming and studying the PMPP (Parallel Programming and Optimization) book.
 
-Mentor: https://github.com/hkproj/
-Bro in the 100 days challenge: https://github.com/1y33/100Days
-
 ## Day 0
 
 Files: vector_addition.cu, vector_add_block.cu, vector_add_triton.py
