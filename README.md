@@ -4,6 +4,38 @@
 Mentor: https://github.com/hkproj/
 Bro in the 100 days challenge: https://github.com/1y33/100Days
 
+## Day 0
+
+Files: vector_addition.cu, vector_add_block.cu, vector_add_triton.py
+Summary:
+Bootstrapped the challenge with baseline vector addition kernels plus a Triton port that mirrors the single-block and multi-block CUDA implementations. Established deterministic testing, benchmarking harnesses, and mixed-precision ready data paths to set the tone for the rest of the project.
+
+**CUDA Implementations (vector_addition.cu & vector_add_block.cu):**
+- Single-SM kernel maps one thread per element for tight debugging loops.
+- Grid-scaled variant computes `i = blockIdx.x * blockDim.x + threadIdx.x` with configurable block size.
+- Deterministic host randomization, CUDA event timing, and CPU cross-checks using `gettimeofday`.
+- Reusable allocation + CUDA_CHECK macros laid the base utility layer for later days.
+
+**Triton Implementation (vector_add_triton.py):**
+- Two kernels: `vector_add_single_block_kernel` (1 launch, BLOCK_SIZE threads) and `vector_add_block_kernel` (grid-wide tiled) with autotuning configs.
+- Functional wrapper `vector_add_day0` selects kernels to mimic either CUDA file while keeping coalesced access and configurable tile sizes.
+- Benchmark harness reports latency, GFLOPS, and bandwidth for N ∈ {1K … 10M}; unit tests assert bit-exact equality vs PyTorch.
+- Ready for FP16/BF16 inputs with FP32 accumulation to avoid precision loss and provides placeholders for tl.comm_* distributed hooks.
+
+**Key Implementation Details:**
+- Memory layout: contiguous 1D tensors; 3N global transactions per pass.
+- Launch policy: single-block path ensures identical behavior to the introductory CUDA example, while multi-block path scales via `triton.cdiv(N, BLOCK_SIZE)`.
+- Error detection: host-side asserts, deterministic seeds, and torch.testing comparisons catch mismatches immediately.
+- Profiling: `torch.cuda.synchronize()` guarded timers, GFLOPS/bandwidth metrics, and easily wrappable `nsys profile` commands.
+
+**Mathematical Foundation:**
+- Element-wise addition C[i] = A[i] + B[i]
+- Memory complexity: 3N * sizeof(dtype)
+- Computational complexity: N fused adds with perfectly parallel work decomposition
+
+**Reading / Focus:**
+- Revisited CUDA execution basics (thread hierarchy, grid math) before deep-diving into PMPP Chapter 1 in subsequent days.
+
 ## Day 1
 
 Files: rope.py, RoPE.cu, RoPE_triton.py

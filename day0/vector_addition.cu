@@ -3,59 +3,54 @@
 #include <math.h>
 #include <assert.h>
 #include <cuda.h>
-#include <cuda_runtime.h>
 #include <sys/time.h>
 #include "cuda_common.cuh"
 
 typedef int EL_TYPE;
 
-__global__ void cuda_vectorAdd(EL_TYPE *OUT, EL_TYPE *A, EL_TYPE *B, int N)
+void cuda_vector_add_simple(EL_TYPE *OUT, EL_TYPE *A, EL_TYPE *B, int N)
 {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < N){
+    int i = threadIdx.x;
+    if (i < N)
+    {
         OUT[i] = A[i] + B[i];
     }
 }
 
-void test_vectorAdd(int N, int block_size)
+
+void test_vector_addition(int N)
 {
     EL_TYPE *A, *B, *OUT;
     EL_TYPE *d_A, *d_B, *d_OUT;
 
-    // Allocate the vectors on the host device
+    // Allocate the vectors on the host device : CPU
     A = (EL_TYPE *)malloc(sizeof(EL_TYPE) * N);
     B = (EL_TYPE *)malloc(sizeof(EL_TYPE) * N);
     OUT = (EL_TYPE *)malloc(sizeof(EL_TYPE) * N);
 
     // Initialize the vectors with random values
-    for (int i = 0; i < N; i++){
+    for (int i = 0; i < N; i++)
+    {
         A[i] = rand() % 100;
         B[i] = rand() % 100;
     }
 
-    // Allocate device memory for a
-    CUDA_CHECK(cudaMalloc((void **)&d_A, sizeof(EL_TYPE) * N));
+    // Allocate device memory 
+    CUDA_CHECK(cudaMalloc((void **)&d_A, sizeof(EL_TYPE) * N)); 
     CUDA_CHECK(cudaMalloc((void **)&d_B, sizeof(EL_TYPE) * N));
     CUDA_CHECK(cudaMalloc((void **)&d_OUT, sizeof(EL_TYPE) * N));
 
     // Transfer the vectors to the device
-    CUDA_CHECK(cudaMemcpy(d_A, A, sizeof(EL_TYPE) * N, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_A, A, sizeof(EL_TYPE) * N, cudaMemcpyHostToDevice)); // CPU -> GPU
     CUDA_CHECK(cudaMemcpy(d_B, B, sizeof(EL_TYPE) * N, cudaMemcpyHostToDevice));
 
-
-    // Define the launch grid
-    int num_blocks = ceil((float)N / block_size);
-    printf("Vector Add - N: %d will be processed by %d blocks of size %d\n", N, num_blocks, block_size);
-    dim3 grid(num_blocks, 1, 1);
-    dim3 block(block_size, 1, 1);
-
-    cudaEvent_t start_kernel, stop_kernal;
+    cudaEvent_t start_kernel, stop_kernel;
     CUDA_CHECK(cudaEventCreate(&start_kernel));
     CUDA_CHECK(cudaEventCreate(&stop_kernel));
 
     CUDA_CHECK(cudaEventRecord(start_kernel));
     // Run the kernel
-    cuda_vectorAdd<<<grid, block>>>(d_OUT, d_A, d_B, N);
+    cuda_vector_add_simple<<<1, N>>>(d_OUT, d_A, d_B, N);
     CUDA_CHECK(cudaEventRecord(stop_kernel));
     // Check for launch errors
     CUDA_CHECK(cudaPeekAtLastError());
@@ -78,9 +73,10 @@ void test_vectorAdd(int N, int block_size)
     struct timeval start_check, end_check;
     gettimeofday(&start_check, NULL);
 
-    for (int i = 0; i < N; i++){
-        // Check if the result is correct
-        if (OUT[i] != A[i] + B[i]){
+    for (int i = 0; i < N; i++)
+    {
+        if (OUT[i] != A[i] + B[i])
+        {
             printf("Error at index %d: %d != %d + %d\n", i, OUT[i], A[i], B[i]);
             exit(1);
         }
@@ -96,13 +92,12 @@ void test_vectorAdd(int N, int block_size)
     free(A);
     free(B);
     free(OUT);
+
 }
 
 int main()
 {
     // set your seed
     srand(0);
-    test_vectorAdd(1000000, 128);
-
-    return 0;   
+    test_vector_addition(1000000);
 }
