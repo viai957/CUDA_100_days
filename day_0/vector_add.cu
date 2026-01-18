@@ -11,7 +11,7 @@ typedef int EL_TYPE;
 
 __global__ void vector_add(EL_TYPE *OUT, EL_TYPE *A, EL_TYPE *B, int N)
 {
-    const int threadIndex = threadIndex.x;
+    const int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
     if (threadIndex < N)
     {
         OUT[threadIndex] = A[threadIndex] + B[threadIndex];
@@ -49,8 +49,10 @@ void test_vector_add(int N)
     CUDA_CHECK(cudaEventCreate(&stop_kernel));
 
     CUDA_CHECK(cudaEventRecord(start_kernel));
-    // Run the kernel with single block
-    cuda_vector_add<<<1, N>>>(d_OUT, d_A, d_B, N);
+    // Run the kernel with multi-block configuration
+    const int threads_per_block = 256;
+    const int num_blocks = (N + threads_per_block - 1) / threads_per_block;
+    vector_add<<<num_blocks, threads_per_block>>>(d_OUT, d_A, d_B, N);
     CUDA_CHECK(cudaEventRecord(stop_kernel));
 
     // Check for launch errors
